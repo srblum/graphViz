@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="graphViz.css" rel="stylesheet" />
+  <meta charset=utf-8 />
+  <title>graphViz.js</title>
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+  <script type= "text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
+  <script src="http://cytoscape.github.io/cytoscape.js/api/cytoscape.js-latest/cytoscape.min.js"></script>
+  <script src="graphViz.js"></script>
+</head>
+  
+<body>
+  <form>
+    Server: <input name='url' value='cactus-brca1'></br>
+    Sequence: <input name='seq' id='seq' value=0></br>
+    Position: <input name='pos' id='pos' value=0></br>
+    Radius: <input name='radius' value=1000></br>
+    <input TYPE="button" value='Extract Subgraph' onClick="postSubgraph(this.form)">
+    <input TYPE="button" value='View Whole Graph' onClick="postGraph(this.form)">
+  </form>
+	<select id='alleles' onChange=highlightPath(this.value)></select> </br>
+
+	<div id="cy"></div>
+</body>
+</html>
