@@ -114,14 +114,14 @@ function initializeData(){
           "pageSize": 100, 
           "pageToken": null
     },  
-        seqRequest={
+    seqRequest={
           "pageSize": 100, 
           "pageToken": '0', 
           "referenceSetId": null, 
           "variantSetId": null,
           "listBases":false
     },   
-        joinRequest={
+    joinRequest={
           "length": null, 
           "pageSize": 10000000, 
           "pageToken": '0', 
@@ -131,7 +131,7 @@ function initializeData(){
           "strand": null, 
           "variantSetId": null
     },
-        subgraphRequest={
+    subgraphRequest={
           "position":{
             "position":0,
             "referenceName":null,
@@ -141,7 +141,7 @@ function initializeData(){
           "referenceSetId":null,
           "variantSetId":null
     },
-        alleleIDRequest={
+    alleleIDRequest={
           "pageSize": 100,
           "pageToken": '0', 
           "start": 0, 
@@ -163,13 +163,14 @@ var refSetExt="v0.6.g/referencesets/search",
 //
 //Start Ajax functions
 //
-function post_(extension,request,success){
+function post_(extension,request,success,fail){
   $.ajax({
     type:"POST",
     contentType:"application/json",
     url:url+extension,
     data:JSON.stringify(request),
-    success:success
+    success:success,
+    fail:fail
   });
 }
 
@@ -183,8 +184,14 @@ function get_(extension,success){
 
 function refSetSuccess(data){
     var refSets=data['referenceSets'];
-    seqRequest['referenceSetId']=refSets[0]['id'];
-    joinRequest['referenceSetId']=refSets[0]['id'];
+    try{
+      seqRequest['referenceSetId']=refSets[0]['id'];
+      joinRequest['referenceSetId']=refSets[0]['id'];
+      console.log(refSets[0]['id']);
+    }catch(err){
+      seqRequest['referenceSetId']='0';
+      joinRequest['referenceSetId']='0';
+    }
     post_(seqExt,seqRequest,seqSuccess);
 }
 
@@ -207,6 +214,7 @@ function joinSuccess(data){
   var joins=data['joins'];
   for(var i=0;i<joins.length;i++){
     joinArr[joinArr.length]=joins[i];
+    console.log(joins[i]);
   }
   if(nextPageToken!=null){
     joinRequest['pageToken']=nextPageToken;
@@ -222,6 +230,7 @@ function alleleIDSuccess(data){
   for(var i=0;i<alleles.length;i++){
     var allele=alleles[i],
         id_=allele['id'];
+    console.log(allele);
     alleleIDArr[alleleIDArr.length]=id_;
   }
   var doneArr=[];
@@ -278,20 +287,12 @@ function alleleSuccess(data){
 }
 
 function subgraphSuccess(data){
+  console.log("Subgraph success.")
   var joins=data['joins'],
       segments=data['segments'];
-  for(var i=0;i<joins.length;i++){
-    var side1=joins[i]['side1'],
-        side2=joins[i]['side2'],
-        base1=side1['base'],
-        pos1=base1['position'],
-        seq1=base1['sequenceId'],
-        strand1=side1['strand'],
-        base2=side2['base'],
-        strand2=side2['strand'],
-        pos2=base2['position'],
-        seq2=base2['sequenceId'];
+  for(var i in joins){
     joinArr[joinArr.length]=joins[i];
+    console.log(joins[i]);
   }
   for(var i in segments){
     var seg=segments[i],
@@ -301,21 +302,24 @@ function subgraphSuccess(data){
         strand=start['strand'],
         pos=base['position'],
         seq=base['sequenceId'];
+    console.log(seg);
     segArr[segArr.length]=[seq,pos,strand,length];
   }
   post_(alleleIDExt,alleleIDRequest,alleleIDSuccess);
   addSegEndsFromSegments();
+}
+
+function subgraphFail(data){
+  console.log("fail");
 }
 //
 //End Ajax Functions
 //
 
 
-
 //
 //Start Data wrangling Functions
 //
-
 function addSegEndsFromSequences(){
   //Add all the starting segEnds and internal segJoins
   for(var i=0;i<seqArr.length;i++){
@@ -598,10 +602,12 @@ function draw(){
 
 function positionMainSeq(){
       console.log("Positioning main seq...");
+
       //seqIDCountDict is used to determine the mainSeq, the seq with the most segEnds
       var seqIDCountDict={},
           viewportHeight=cy.height(),
           viewportWidth=cy.width();
+
       //Count segEnds in each sequence and store them in seqIDCountDict
       for(var i in segEndArr){
         var segEnd=segEndArr[i],
@@ -904,30 +910,24 @@ function highlightPath(name){
 
 
 $(function(){
-  //Get whole graph
-  initializeData();
-  //Default url when graph first loads.
-  url='http://ec2-54-149-188-244.us-west-2.compute.amazonaws.com/cactus-brca1/';
-  post_(refSetExt,refRequest,refSetSuccess);
-  //Get subgraph
-  // initializeData();
-  // post_(subgraphExt,subgraphRequest,subgraphSuccess);
+  document.getElementById("subGraph").click();
 });
 
 function postSubgraph(form){
   initializeData();
   draw();
-  url="http://ec2-54-149-188-244.us-west-2.compute.amazonaws.com/"+form.url.value+"/";
+  console.log("Getting subgraph.");
+  url="http://ga4gh-test1.cloudapp.net/"+form.url.value+"/";
+  console.log(url);
   subgraphRequest['position']['position']=parseInt(form.pos.value);
   subgraphRequest['position']['sequenceId']=form.seq.value;
   subgraphRequest['radius']=parseInt(form.radius.value);
-  post_(subgraphExt,subgraphRequest,subgraphSuccess);
+  post_(subgraphExt,subgraphRequest,subgraphSuccess,subgraphFail);
 }
 
 function postGraph(form){
   initializeData();
   draw();
-  url="http://ec2-54-149-188-244.us-west-2.compute.amazonaws.com/"+form.url.value+"/";
-  console.log(url)
+  url="http://ga4gh-test1.cloudapp.net/"+form.url.value+"/";
   post_(refSetExt,refRequest,refSetSuccess);
 }
